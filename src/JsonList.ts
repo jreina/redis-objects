@@ -33,8 +33,11 @@ export class JsonList<T> {
       return newList;
     } else if (mode === OperationMode.Overwrite) {
       await this.delete();
-      await this.push(items);
+      const newList = new JsonList<U>(this._redis, this._key);
+      await newList.push(items);
+      return newList;
     }
+    throw new Error('OperationMode not valid: ' + mode);
   }
   async filter(predicate: (x: T, index: number, arr: Array<T>) => boolean): Promise<Array<T>> {
     const strItems = await this._redis.lrange(this._key, 0, -1);
