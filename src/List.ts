@@ -1,5 +1,5 @@
 import { Redis } from 'ioredis';
-import uuid from 'uuid/v4';
+import { v4 as uuid } from 'uuid';
 
 /**
  * Maintains a list of JSON objects in a Redis list.
@@ -20,9 +20,20 @@ export class List<T> {
     else this.serializer = x => JSON.stringify(x);
   }
 
+  length(): Promise<number> {
+    return this.redis.llen(this.key);
+  }
+
+  /**
+   * Get an item at the specified index.
+   */
+  at(index: number): Promise<T> {
+    return this.redis.lindex(this.key, index).then(this.deserializer);
+  }
+
   /**
    * Set the deserializer factory used to deserialize objects from Redis.
-   * @param deserializer 
+   * @param deserializer
    */
   setDeserializer(deserializer: (item: string) => T) {
     this.deserializer = deserializer;
@@ -31,7 +42,7 @@ export class List<T> {
 
   /**
    * Set the serializer factory user to serialize objects into Redis.
-   * @param serializer 
+   * @param serializer
    */
   setSerializer(serializer: (item: T) => string) {
     this.serializer = serializer;
@@ -40,7 +51,7 @@ export class List<T> {
 
   /**
    * Push an item or an array of items to the list.
-   * @param item 
+   * @param item
    */
   push(item: Array<T>): Promise<void>;
   push(item: T): Promise<void>;
@@ -54,7 +65,7 @@ export class List<T> {
   /**
    * Delete the list.
    */
-  async delete() {
+  async delete(): Promise<void> {
     await this.redis.del(this.key);
   }
 
@@ -76,7 +87,7 @@ export class List<T> {
     const items = (await this.items()).map(xform);
 
     const tmpKey = this._getTempKey();
-    const tmpList = new List<U>(this.redis, this.key);
+    const tmpList = new List<U>(this.redis, tmpKey);
     await tmpList.push(items);
     await this.delete(); // only delete after the temp list has been populated
     await tmpList.redis.rename(tmpKey, this.key);

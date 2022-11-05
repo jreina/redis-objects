@@ -23,5 +23,4 @@ const redis = new Redis();
 const factory = new RedisObjects(redis);
 
 const list = factory.getList<Person>('people');
-// TODO - Docs
 ```
