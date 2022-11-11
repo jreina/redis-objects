@@ -112,10 +112,14 @@ export class List<T> {
   async filter(predicate: (x: T, index: number, arr: Array<T>) => boolean): Promise<List<T>> {
     const items = (await this.items()).filter(predicate);
 
-    const newList = new List<T>(this.redis, this._getTempKey());
-    newList.push(items);
+    const tmpKey = this._getTempKey();
+    const newList = new List<T>(this.redis, tmpKey);
+    await newList.push(items);
 
-    return newList;
+    await this.delete();
+    await this.redis.rename(tmpKey, this.key);
+
+    return this;
   }
 
   async filterCopy(predicate: (x: T, index: number, arr: Array<T>) => boolean): Promise<List<T>> {
@@ -128,11 +132,6 @@ export class List<T> {
     await this.redis.rename(newList.key, this.key);
 
     return newList;
-  }
-
-  async reduce(predicate: (x: T, index: number, arr: Array<T>) => boolean): Promise<Array<T>> {
-    const items = (await this.items()).filter(predicate);
-    return items;
   }
 
   private _getTempKey() {
